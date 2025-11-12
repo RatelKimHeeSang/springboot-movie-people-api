@@ -1,0 +1,50 @@
+name: build movie people app
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      OCI_CLI_USER: $
+      OCI_CLI_TENANCY: $
+      OCI_CLI_FINGERPRINT: $
+      OCI_CLI_KEY_CONTENT: $
+      OCI_CLI_REGION: $
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Log into OCIR
+        uses: oracle-actions/login-ocir@v1.2.1
+        id: login-ocir
+        with:
+          auth_token: $
+      - name: docker build
+        id: docker-build
+        run: |
+          docker build . -t icn.ocir.io/cnbkloa0ci62/movie/springboot-movie-people-api:${{ github.sha }}
+      - name: docker push
+        id: docker-push
+        run: |
+          docker push icn.ocir.io/cnbkloa0ci62/movie/springboot-movie-people-api:${{ github.sha }}
+      - name: Checkout K8s Manifest
+        uses: actions/checkout@v4
+        with:
+          repository: RatelKimHeeSang/movie-k8s-manifest-repo
+          path: .
+          token: $
+      - name: Change config repo manifest
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq -i '.spec.template.spec.containers.[0].image = "icn.ocir.io/axlpeslmb1ng/movie/springboot-movie-people-api:${{ github.sha }}"' kube-springboot-movie-people-api-deployment.yml
+      - name: Pushes to config repository
+        run: |
+          git add .
+          git config --global user.email "1997.kimheesang@gmail.com"
+          git config --global user.name "RatelKHS"
+          git commit -am "Change Image version to ${{ github.sha }}"
+          git push
