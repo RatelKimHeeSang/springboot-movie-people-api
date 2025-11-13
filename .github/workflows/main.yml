@@ -22,7 +22,7 @@ jobs:
         uses: oracle-actions/login-ocir@v1.2.1
         id: login-ocir
         with:
-          auth_token: $
+          auth_token: ${{ secrets.OCI_AUTH_TOKEN }}
       - name: docker build
         id: docker-build
         run: |
@@ -36,11 +36,14 @@ jobs:
         with:
           repository: RatelKimHeeSang/movie-k8s-manifest-repo
           path: .
-          token: $
+          token: ${{ secrets.GIT_REPOPAT }}
       - name: Change config repo manifest
         uses: mikefarah/yq@master
+        env:
+          SHA: ${{ github.sha }}
         with:
-          cmd: yq -i '.spec.template.spec.containers.[0].image = "icn.ocir.io/axlpeslmb1ng/movie/springboot-movie-people-api:${{ github.sha }}"' kube-springboot-movie-people-api-deployment.yml
+          cmd: >
+          yq -i '.spec.template.spec.containers.[0].image = "icn.ocir.io/cnbkloa0ci62/movie/springboot-movie-people-api:" + env(SHA)' kube-springboot-movie-people-api-deployment.yml
       - name: Pushes to config repository
         run: |
           git add .
